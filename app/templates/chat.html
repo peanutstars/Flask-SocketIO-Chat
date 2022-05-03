@@ -6,9 +6,10 @@
         <script type="text/javascript" charset="utf-8">
             var socket;
             $(document).ready(function(){
+                console.log(`${document.domain}:${location.port}`)
                 socket = io.connect('http://' + document.domain + ':' + location.port + '/chat');
                 socket.on('connect', function() {
-                    socket.emit('joined', {});
+                    socket.emit('joined', {room: '{{ room }}', name: '{{ name }}'});
                 });
                 socket.on('status', function(data) {
                     $('#chat').val($('#chat').val() + '<' + data.msg + '>\n');
@@ -35,6 +36,13 @@
                     window.location.href = "{{ url_for('main.index') }}";
                 });
             }
+            window.addEventListener("beforeunload", function (e) {
+                //To do something (Remember, redirects or alerts are blocked here by most browsers):
+                socket.emit('text', {msg: 'exit'});
+                leave_room();
+                //To show a dialog (uncomment to test):
+                //return showADialog(e);
+            });
         </script>
     </head>
     <body>

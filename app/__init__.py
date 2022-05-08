@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_socketio import SocketIO
 
+# socketio = SocketIO(engineio_logger=True, logger=True)
 socketio = SocketIO()
 
 

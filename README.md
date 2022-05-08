@@ -11,4 +11,4 @@ To run this application install the requirements in a virtual environment, run `
 Reference
 =========
 
-+ [python-socketio document](https://python-socketio.readthedocs.io/en/latest/client.html)
++ [python-socketio client document](https://python-socketio.readthedocs.io/en/latest/client.html)

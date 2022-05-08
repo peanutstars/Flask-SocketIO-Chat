@@ -18,13 +18,7 @@ from bs4 import BeautifulSoup
 
 
 class ChatNamespace(socketio.ClientNamespace):
-    def __init__(self, handle, namespace=None):
-        super(ChatNamespace, self).__init__(namespace)
-        self.handle = handle
-        
     def on_connect(self):
-        # 서버가 끊어졌다가 다시 연결되는 경우, 로그인이 필요하다.
-        self.handle.login()
         self.emit('joined', 'Client joined')
         print('connection established')
     
@@ -32,47 +26,53 @@ class ChatNamespace(socketio.ClientNamespace):
         print('disconnected')
     
     def on_message(self, data):
-        print('message received with ', data['msg'])
+        print('message received with', data['msg'])
+
+    def on_status(self, data):
+        print('status received with', data['msg'])
+
 
 class ChatClient:
     HOST_URL = 'http://localhost:5000'
     def __init__(self, name='python', room='room'):
-        self.client = requests.Session()
-        self.sio = socketio.Client()
-        self.name = name
-        self.room = room
-        self.init()
+        self.session = requests.Session()
+        self.sio = socketio.Client(http_session=self.session)
+        print(f'>> Name[{name}], Room[{room}]')
+        self.init(name, room)
 
     def __del__(self):
-        self.client.close()
+        self.session.close()
 
-    def init(self):
-        self.login()
-        self.sio.register_namespace(ChatNamespace(self, '/chat'))
-        headers = {'Cookie': f'session={self.client.cookies["session"]}'}
-        self.sio.connect(self.HOST_URL, headers=headers, namespaces=['/chat'])
+    def init(self, name, room):
+        self.login(name, room)
+        self.sio.register_namespace(ChatNamespace('/chat'))
+        ## socketio.Client() 에서 http_session 파라미터를 통해 session 정보 전달
+        # headers = {'Cookie': f'session={self.session.cookies["session"]}'}
+        # self.sio.connect(self.HOST_URL, headers=headers, namespaces=['/chat'])
+        self.sio.connect(self.HOST_URL)
         self.sio.emit('text', {'msg': 'PyClient Message'}, namespace='/chat')
 
-    def login(self):
-        r = self.client.get(self.HOST_URL)
+    def login(self, name, room):
+        r = self.session.get(self.HOST_URL)
         soup = BeautifulSoup(r.text, features="html.parser")
         csrftoken = soup.find('input', dict(name='csrf_token'))['value']
         del soup
 
         if csrftoken:
-            login_data = dict(name=self.name, room=self.room, csrf_token=csrftoken)
-            r = self.client.post(self.HOST_URL, data=login_data)
+            login_data = dict(name=name, room=room, csrf_token=csrftoken)
+            r = self.session.post(self.HOST_URL, data=login_data)
             print(r.status_code, f'with csrf_token: {csrftoken}')
 
         
     def run(self):
-        is_run = True
-        while is_run:
-            line = input('input:')
-            if line.strip() in 'qQ':
-                is_run = False
+        while True:
+            line = input('input:').strip()
+            if line and line in 'qQ':
                 print('<Quit>')
-                continue
+                break
+            if not self.sio.connected:
+                print(f'socketio.connected[{self.sio.connected}]')
+                break
             self.sio.emit('text', {'msg': line}, namespace='/chat')
 
         print("<END>")

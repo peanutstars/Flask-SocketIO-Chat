@@ -49,7 +49,8 @@ class ChatClient:
         ## socketio.Client() 에서 http_session 파라미터를 통해 session 정보 전달
         # headers = {'Cookie': f'session={self.session.cookies["session"]}'}
         # self.sio.connect(self.HOST_URL, headers=headers, namespaces=['/chat'])
-        self.sio.connect(self.HOST_URL)
+        ## 220509 - Window에서 wait_timeout=1 사용하면, 연결중에 끊기는 문제 발생한다.
+        self.sio.connect(self.HOST_URL, wait_timeout=5)
         self.sio.emit('text', {'msg': 'PyClient Message'}, namespace='/chat')
 
     def login(self, name, room):
